@@ -26,27 +26,36 @@ class MLModelHandler(ModelHandler):
 
     def initialize(self, ):
         # De-serializing model and loading vectorizer
-        ...
+        import joblib
+        self.model=joblib.load('model/ml.model.pkl')
+        self.vectorizer = jobilb.load('model/ml_vectorizer.pkl')
         
-    def preprocess(self, ):
+    def preprocess(self, text):
         # cleansing raw text
-        ...
+        model_input = self._clean_text(text)
+
         
         # vectorizing cleaned text
-        ...
+        model_input = self.vectorizer.transform(model_input)
+        return model_input
         
-    def inference(self, ):
+    def inference(self, model_input):
         # get predictions from model as probabilities
-        ...
+        model_output = self.model.predict_proba(model_input)
+        return model_output
 
-    def postprocess(self, ):
+    def postprocess(self, model_output):
         # process predictions to predicted label and output format
-        ...
+        predicted_probablities = model_output.max(axis=1)
+        predicted_ids = model_output.argmax(axis=1)
+        predicted_labels= [self.id2label[id_]for id_ in predicted_ids]
+        return predicted_labels, predicted_probablities
 
-    def handle(self, ):
+    def handle(self, text):
         # do above processes
-        ...
-
+        model_input = self.preprocess(text)
+        model_output = self.inference(model_input)
+        return self.postprocess(model_output)
 
 class DLModelHandler(ModelHandler):
     def __init__(self):
