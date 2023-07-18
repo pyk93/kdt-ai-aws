@@ -27,8 +27,8 @@ class MLModelHandler(ModelHandler):
     def initialize(self, ):
         # De-serializing model and loading vectorizer
         import joblib
-        self.model=joblib.load('model/ml.model.pkl')
-        self.vectorizer = jobilb.load('model/ml_vectorizer.pkl')
+        self.model=joblib.load('model/ml_model.pkl')
+        self.vectorizer = joblib.load('model/ml_vectorizer.pkl')
         
     def preprocess(self, text):
         # cleansing raw text
@@ -57,6 +57,8 @@ class MLModelHandler(ModelHandler):
         model_output = self.inference(model_input)
         return self.postprocess(model_output)
 
+import torch
+
 class DLModelHandler(ModelHandler):
     def __init__(self):
         super().__init__()
@@ -64,17 +66,17 @@ class DLModelHandler(ModelHandler):
 
     def initialize(self, ):
         # Loading tokenizer and De-serializing model
-        from transformeres import AutoTokenizer, AutoModelForSequenceClassification
+        from transformers import AutoTokenizer, AutoModelForSequenceClassification
         from transformers.file_utils import is_torch_cuda_available
         self.model_name_or_path = 'sackoh/bert-base-multilingual-cased-nsmc'
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path)
         self.model =AutoModelForSequenceClassification.from_pretrained(self.model_name_or_path)
 
-        self.device = 'cuda:0' if is_torch_cuda_available else 'cpu'
+        self.device = 'cuda:0' if is_torch_cuda_available() else 'cpu'
         self.model.to(self.device)
 
 
-    def preprocess(self, ):
+    def preprocess(self, text):
         # cleansing raw text
         model_input = self._clean_text(text)
         
@@ -82,7 +84,7 @@ class DLModelHandler(ModelHandler):
         model_input = self.tokenizer(text,return_tensors='pt',padding=True)
         return model_input
 
-    def inference(self, ):
+    def inference(self, model_input):
         # get predictions from model as probabilities
         with torch.no_grad():
             model_output = self.model(**model_input)[0].cpu()
@@ -90,14 +92,14 @@ class DLModelHandler(ModelHandler):
             model_output = model_output.numpy().astype(float)
         return model_output
         
-    def postprocess(self, ):
+    def postprocess(self, model_output):
         # process predictions to predicted label and output format
         predicted_probablities = model_output.max(axis=1)
         predicted_ids = model_output.argmax(axis=1)
         predicted_labels= [self.id2label[id_]for id_ in predicted_ids]
         return predicted_labels, predicted_probablities
 
-    def handle(self, ):
+    def handle(self, text):
         model_input = self.preprocess(text)
         model_output = self.inference(model_input)
         return self.postprocess(model_output)
