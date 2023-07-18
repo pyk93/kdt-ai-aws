@@ -64,22 +64,40 @@ class DLModelHandler(ModelHandler):
 
     def initialize(self, ):
         # Loading tokenizer and De-serializing model
-        ...
+        from transformeres import AutoTokenizer, AutoModelForSequenceClassification
+        from transformers.file_utils import is_torch_cuda_available
+        self.model_name_or_path = 'sackoh/bert-base-multilingual-cased-nsmc'
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path)
+        self.model =AutoModelForSequenceClassification.from_pretrained(self.model_name_or_path)
+
+        self.device = 'cuda:0' if is_torch_cuda_available else 'cpu'
+        self.model.to(self.device)
+
 
     def preprocess(self, ):
         # cleansing raw text
-        ...
+        model_input = self._clean_text(text)
         
         # vectorizing cleaned text
-        ...
+        model_input = self.tokenizer(text,return_tensors='pt',padding=True)
+        return model_input
 
     def inference(self, ):
         # get predictions from model as probabilities
-        ...
+        with torch.no_grad():
+            model_output = self.model(**model_input)[0].cpu()
+            model_output = 1.0 / (1.0 +torch.exp(-model_output))
+            model_output = model_output.numpy().astype(float)
+        return model_output
         
     def postprocess(self, ):
         # process predictions to predicted label and output format
-        ...
+        predicted_probablities = model_output.max(axis=1)
+        predicted_ids = model_output.argmax(axis=1)
+        predicted_labels= [self.id2label[id_]for id_ in predicted_ids]
+        return predicted_labels, predicted_probablities
 
     def handle(self, ):
-        ...
+        model_input = self.preprocess(text)
+        model_output = self.inference(model_input)
+        return self.postprocess(model_output)
