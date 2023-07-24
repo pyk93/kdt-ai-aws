@@ -7,7 +7,8 @@ import uvicorn
 app = FastAPI()
 
 # assign model handler as global variable [2 LINES]
-...
+ml_handler = MLModelHandler()
+dl_handler = DLModelHandler()
 
 
 # define request/response data type for validation
@@ -33,9 +34,9 @@ async def predict(request: RequestModel):
 
     # model inference [2 LINES]
     if model_type == 'ml':
-        ...
+        predictions = ml_handler.handle(text)
     else:
-        ...
+        predictions = dl_handler.handle(text)
 
     # response
     result = {str(i): {'text': t, 'label': l, 'confidence': c}
